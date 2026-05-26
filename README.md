@@ -81,3 +81,4 @@ For local env from Vercel: `vercel env pull`
 | POST | `/api/workouts` | Create workout |
 | GET | `/api/workouts/last` | Last workout (for copy) |
 | GET | `/api/workouts/:id` | Workout detail |
+| DELETE | `/api/workouts/:id` | Delete workout |

@@ -66,6 +66,8 @@ export const api = {
     last: () => request<{ workout: WorkoutDetail | null }>('/api/workouts/last'),
     create: (body: CreateWorkoutPayload) =>
       request<{ workout: WorkoutDetail }>('/api/workouts', { method: 'POST', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      request<{ success: boolean }>(`/api/workouts/${id}`, { method: 'DELETE' }),
   },
 }
 

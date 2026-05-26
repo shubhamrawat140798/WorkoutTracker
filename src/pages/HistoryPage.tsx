@@ -5,6 +5,7 @@ import { api, type WorkoutSummary } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { DeleteWorkoutButton } from '@/components/DeleteWorkoutButton'
 
 export function HistoryPage() {
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([])
@@ -62,17 +63,22 @@ export function HistoryPage() {
             </h2>
             <div className="space-y-2">
               {items.map((w) => (
-                <Link key={w.id} to={`/workout/${w.id}`}>
-                  <Card className="transition-colors hover:border-primary/50">
-                    <CardHeader className="flex-row items-center justify-between space-y-0 py-3">
-                      <div>
+                <Card key={w.id} className="transition-colors hover:border-primary/50">
+                  <CardHeader className="flex-row items-center gap-2 space-y-0 py-3">
+                    <Link to={`/workout/${w.id}`} className="flex min-w-0 flex-1 items-center justify-between">
+                      <div className="min-w-0">
                         <CardTitle className="text-base">{w.title}</CardTitle>
                         <CardDescription>{formatDate(w.date)}</CardDescription>
                       </div>
-                      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-                    </CardHeader>
-                  </Card>
-                </Link>
+                      <ChevronRight className="ml-2 h-5 w-5 shrink-0 text-muted-foreground" />
+                    </Link>
+                    <DeleteWorkoutButton
+                      workoutId={w.id}
+                      workoutTitle={w.title}
+                      onDeleted={() => setWorkouts((prev) => prev.filter((x) => x.id !== w.id))}
+                    />
+                  </CardHeader>
+                </Card>
               ))}
             </div>
           </section>

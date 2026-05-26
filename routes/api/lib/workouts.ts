@@ -100,6 +100,15 @@ export async function listWorkouts(userId: string, limit = 50) {
   return rows
 }
 
+export async function deleteWorkout(workoutId: string, userId: string) {
+  const deleted = await db
+    .delete(workouts)
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)))
+    .returning({ id: workouts.id })
+
+  return deleted.length > 0
+}
+
 export function calculateVolume(exercises: { sets: { reps: number | null; weight: number | null }[] }[]) {
   let total = 0
   for (const ex of exercises) {

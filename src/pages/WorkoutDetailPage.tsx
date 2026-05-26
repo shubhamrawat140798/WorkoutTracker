@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Clock } from 'lucide-react'
 import { api, type WorkoutDetail } from '@/lib/api'
 import { formatDate, formatVolume } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DeleteWorkoutButton } from '@/components/DeleteWorkoutButton'
 
 export function WorkoutDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [workout, setWorkout] = useState<WorkoutDetail | null>(null)
   const [totalVolume, setTotalVolume] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -85,6 +87,13 @@ export function WorkoutDetailPage() {
           </Card>
         )
       })}
+
+      <DeleteWorkoutButton
+        workoutId={workout.id}
+        workoutTitle={workout.title}
+        variant="full"
+        onDeleted={() => navigate('/history', { replace: true })}
+      />
     </div>
   )
 }

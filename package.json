@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/db-migrate.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "db:push": "drizzle-kit push",
     "db:push:prod": "ENV_FILE=.env.production.local node scripts/db-migrate.mjs",
+    "setup:local": "node scripts/setup-local-env.mjs",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
   },
