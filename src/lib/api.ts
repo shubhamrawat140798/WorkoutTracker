@@ -13,7 +13,10 @@ function parseErrorMessage(data: Record<string, unknown>, status: number): strin
   if (typeof data.statusMessage === 'string' && data.statusMessage !== 'HTTPError') {
     return data.statusMessage
   }
-  if (status === 503) return 'Service unavailable. Check database configuration in .env'
+  if (status === 503) {
+    if (typeof data.message === 'string' && data.message) return data.message
+    return 'Service unavailable. Check database configuration in .env'
+  }
   if (status === 401) return 'Invalid email or password'
   if (status === 409) return 'Email already registered'
   return 'Request failed'
@@ -73,6 +76,15 @@ export const api = {
     list: () => request<{ exercises: CatalogExercise[] }>('/api/catalog'),
     get: (slug: string) => request<{ exercise: CatalogExercise }>(`/api/catalog/${encodeURIComponent(slug)}`),
   },
+  profile: {
+    get: () => request<{ profile: UserProfile }>('/api/profile'),
+    history: () => request<{ snapshots: ProfileSnapshot[] }>('/api/profile/history'),
+    update: (body: UpdateProfilePayload) =>
+      request<{ profile: UserProfile }>('/api/profile', {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+  },
   admin: {
     catalog: {
       list: () => request<{ exercises: CatalogExercise[] }>('/api/admin/catalog'),
@@ -99,6 +111,39 @@ export interface User {
   name: string
   role: string
   createdAt: string
+}
+
+export interface BodyMeasurements {
+  chest?: number | null
+  waist?: number | null
+  hips?: number | null
+  biceps?: number | null
+  thighs?: number | null
+  neck?: number | null
+}
+
+export interface UserProfile {
+  userId: string
+  gender: string | null
+  heightCm: number | null
+  weightKg: number | null
+  measurements: BodyMeasurements
+  updatedAt: string
+}
+
+export interface UpdateProfilePayload {
+  gender?: string | null
+  heightCm?: number | null
+  weightKg?: number | null
+  measurements?: BodyMeasurements
+}
+
+export interface ProfileSnapshot {
+  id: string
+  recordedAt: string
+  heightCm: number | null
+  weightKg: number | null
+  measurements: BodyMeasurements
 }
 
 export interface CatalogExercise {

@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { Dumbbell, History, Home, LogOut, Settings } from 'lucide-react'
+import { Dumbbell, History, Home, LogOut, Settings, User } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { isAdmin } from '@/lib/auth-utils'
 import { cn } from '@/lib/utils'
@@ -8,6 +8,7 @@ const nav = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/history', icon: History, label: 'History' },
   { to: '/workout/new', icon: Dumbbell, label: 'Log' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ]
 
 export function Layout({ children }: { children?: React.ReactNode }) {
@@ -53,7 +54,9 @@ export function Layout({ children }: { children?: React.ReactNode }) {
         <nav className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur">
           <div className="mx-auto flex max-w-lg justify-around px-2 py-2">
             {nav.map(({ to, icon: Icon, label }) => {
-              const active = location.pathname === to
+              const active =
+                location.pathname === to ||
+                (to === '/profile' && location.pathname.startsWith('/profile'))
               return (
                 <Link
                   key={to}

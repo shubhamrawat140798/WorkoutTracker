@@ -12,6 +12,7 @@ import { ExerciseSearchInput } from '@/components/ExerciseSearchInput'
 import { RpeInfoButton } from '@/components/RpeInfoButton'
 import { RpeSelect } from '@/components/RpeSelect'
 import { CopyWorkoutPicker } from '@/components/CopyWorkoutPicker'
+import { WorkoutCompleteCelebration } from '@/components/WorkoutCompleteCelebration'
 
 type ExerciseEntry = DraftWorkout['exercises'][number] & { id: string }
 
@@ -63,6 +64,11 @@ export function WorkoutNewPage() {
   const [catalog, setCatalog] = useState<CatalogExercise[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [scrollToId, setScrollToId] = useState<string | null>(null)
+  const [celebration, setCelebration] = useState<{
+    workoutId: string
+    durationMinutes: number
+    exerciseCount: number
+  } | null>(null)
 
   useEffect(() => {
     api.catalog
@@ -196,7 +202,11 @@ export function WorkoutNewPage() {
 
       const { workout } = await api.workouts.create(payload)
       localStorage.removeItem(DRAFT_KEY)
-      navigate(`/workout/${workout.id}`)
+      setCelebration({
+        workoutId: workout.id,
+        durationMinutes: durationMinutes > 0 ? durationMinutes : 1,
+        exerciseCount: validExercises.length,
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save workout')
     } finally {
@@ -205,6 +215,14 @@ export function WorkoutNewPage() {
   }
 
   return (
+    <>
+      {celebration && (
+        <WorkoutCompleteCelebration
+          durationMinutes={celebration.durationMinutes}
+          exerciseCount={celebration.exerciseCount}
+          onContinue={() => navigate(`/workout/${celebration.workoutId}`)}
+        />
+      )}
     <div className="mx-auto max-w-lg space-y-4 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Active Workout</h1>
@@ -314,5 +332,6 @@ export function WorkoutNewPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

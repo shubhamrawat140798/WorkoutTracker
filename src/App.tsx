@@ -11,6 +11,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { WorkoutNewPage } from '@/pages/WorkoutNewPage'
 import { WorkoutDetailPage } from '@/pages/WorkoutDetailPage'
+import { ProfilePage } from '@/pages/ProfilePage'
 import { AdminRoute } from '@/components/AdminRoute'
 import { AdminExercisesPage } from '@/pages/admin/AdminExercisesPage'
 import { AdminExerciseNewPage } from '@/pages/admin/AdminExerciseNewPage'
@@ -74,6 +75,7 @@ export default function App() {
             >
               <Route path="/" element={<DashboardPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/workout/:id" element={<WorkoutDetailPage />} />
               <Route
                 path="/admin/exercises"

@@ -84,8 +84,41 @@ export const sets = pgTable('sets', {
   notes: text('notes'),
 })
 
-export const usersRelations = relations(users, ({ many }) => ({
+export type BodyMeasurements = {
+  chest?: number | null
+  waist?: number | null
+  hips?: number | null
+  biceps?: number | null
+  thighs?: number | null
+  neck?: number | null
+}
+
+export const profileSnapshots = pgTable('profile_snapshots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  recordedAt: timestamp('recorded_at', { withTimezone: true }).defaultNow().notNull(),
+  heightCm: decimal('height_cm', { precision: 5, scale: 1 }),
+  weightKg: decimal('weight_kg', { precision: 5, scale: 1 }),
+  measurements: jsonb('measurements').$type<BodyMeasurements>().default({}),
+})
+
+export const userProfiles = pgTable('user_profiles', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  gender: text('gender'),
+  heightCm: decimal('height_cm', { precision: 5, scale: 1 }),
+  weightKg: decimal('weight_kg', { precision: 5, scale: 1 }),
+  measurements: jsonb('measurements').$type<BodyMeasurements>().default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const usersRelations = relations(users, ({ one, many }) => ({
   workouts: many(workouts),
+  profile: one(userProfiles, { fields: [users.id], references: [userProfiles.userId] }),
+  profileSnapshots: many(profileSnapshots),
 }))
 
 export const workoutsRelations = relations(workouts, ({ one, many }) => ({

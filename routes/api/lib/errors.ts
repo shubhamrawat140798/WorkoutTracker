@@ -29,9 +29,13 @@ export function handleDbError(error: unknown): never {
   }
 
   if (message.includes('relation') && message.includes('does not exist')) {
+    const profileTable =
+      message.includes('user_profiles') || message.includes('profile_snapshots')
     throw createError({
       statusCode: 503,
-      message: 'Database tables missing. Run: npm run db:push',
+      message: profileTable
+        ? 'Profile tables missing. Run: npm run db:migrate (local) or redeploy so migrations run on production.'
+        : 'Database tables missing. Run: npm run db:migrate',
     })
   }
 
