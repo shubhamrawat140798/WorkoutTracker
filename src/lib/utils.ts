@@ -18,3 +18,9 @@ export function formatVolume(volume: number, unit: string) {
 export function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
+
+export function formatTime(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+}

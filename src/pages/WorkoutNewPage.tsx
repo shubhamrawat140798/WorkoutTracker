@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Copy, X } from 'lucide-react'
-import { api, DRAFT_KEY, WEIGHT_UNIT_KEY, type CatalogExercise, type DraftWorkout } from '@/lib/api'
+import { Plus, Trash2, X } from 'lucide-react'
+import { api, DRAFT_KEY, WEIGHT_UNIT_KEY, type CatalogExercise, type DraftWorkout, type WorkoutDetail } from '@/lib/api'
+import { getWorkoutWeightUnit, workoutToExerciseEntries } from '@/lib/workout-copy'
 import { todayISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExerciseGuideButton } from '@/components/ExerciseGuideButton'
-
-const selectClass =
-  'h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-sm text-foreground'
+import { ExerciseSearchInput } from '@/components/ExerciseSearchInput'
+import { RpeInfoButton } from '@/components/RpeInfoButton'
+import { RpeSelect } from '@/components/RpeSelect'
+import { CopyWorkoutPicker } from '@/components/CopyWorkoutPicker'
 
 type ExerciseEntry = DraftWorkout['exercises'][number] & { id: string }
 
@@ -58,27 +60,9 @@ export function WorkoutNewPage() {
   const [weightUnit, setWeightUnit] = useState(() => localStorage.getItem(WEIGHT_UNIT_KEY) || 'kg')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [customExercise, setCustomExercise] = useState('')
-  const [catalogPick, setCatalogPick] = useState('')
   const [catalog, setCatalog] = useState<CatalogExercise[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [scrollToId, setScrollToId] = useState<string | null>(null)
-
-  const catalogByMuscle = useMemo(() => {
-    const groups = new Map<string, CatalogExercise[]>()
-    for (const ex of catalog) {
-      const key = ex.primaryMuscle?.trim() || 'Other'
-      const list = groups.get(key) ?? []
-      list.push(ex)
-      groups.set(key, list)
-    }
-    return [...groups.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([muscle, items]) => ({
-        muscle,
-        items: items.sort((a, b) => a.name.localeCompare(b.name)),
-      }))
-  }, [catalog])
 
   useEffect(() => {
     api.catalog
@@ -116,13 +100,6 @@ export function WorkoutNewPage() {
       ...prev.map((e, i) => ({ ...e, sortOrder: i + 1 })),
     ])
     setScrollToId(entry.id)
-    setCustomExercise('')
-    setCatalogPick('')
-  }
-
-  const addFromCatalog = () => {
-    if (!catalogPick) return
-    addExercise(catalogPick)
   }
 
   const removeExercise = (id: string) => {
@@ -173,32 +150,12 @@ export function WorkoutNewPage() {
     })
   }
 
-  const copyLastWorkout = async () => {
-    try {
-      const { workout } = await api.workouts.last()
-      if (!workout) {
-        setError('No previous workout to copy')
-        return
-      }
-      setTitle(workout.title)
-      setExercises(
-        workout.exercises.map((ex, i) => ({
-          id: newId(),
-          name: ex.name,
-          sortOrder: i,
-          sets: ex.sets.map((s) => ({
-            setNumber: s.setNumber,
-            reps: s.reps?.toString() ?? '',
-            weight: s.weight?.toString() ?? '',
-            rpe: s.rpe?.toString() ?? '',
-            notes: s.notes ?? '',
-          })),
-        })),
-      )
-      setError('')
-    } catch {
-      setError('Could not load last workout')
-    }
+  const applyCopiedWorkout = (workout: WorkoutDetail) => {
+    setTitle(workout.title)
+    setExercises(workoutToExerciseEntries(workout, newId))
+    const unit = getWorkoutWeightUnit(workout)
+    if (unit) setWeightUnit(unit)
+    setError('')
   }
 
   const finishWorkout = async () => {
@@ -275,50 +232,12 @@ export function WorkoutNewPage() {
 
       <section className="space-y-3 rounded-2xl border border-border bg-card/50 p-4">
         <p className="text-sm font-medium text-muted-foreground">Add exercise</p>
-        <Button variant="outline" size="sm" onClick={copyLastWorkout} className="gap-1">
-          <Copy className="h-4 w-4" />
-          Copy last workout
-        </Button>
-        <div className="flex gap-2">
-          <select
-            value={catalogPick}
-            onChange={(e) => setCatalogPick(e.target.value)}
-            disabled={catalogLoading}
-            className={selectClass}
-            aria-label="Exercise catalog"
-          >
-            <option value="">
-              {catalogLoading
-                ? 'Loading catalog…'
-                : catalog.length === 0
-                  ? 'No catalog exercises'
-                  : 'Choose from catalog…'}
-            </option>
-            {catalogByMuscle.map(({ muscle, items }) => (
-              <optgroup key={muscle} label={muscle}>
-                {items.map((ex) => (
-                  <option key={ex.id} value={ex.name}>
-                    {ex.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <Button onClick={addFromCatalog} disabled={!catalogPick || catalogLoading} aria-label="Add exercise">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={customExercise}
-            onChange={(e) => setCustomExercise(e.target.value)}
-            placeholder="Custom exercise"
-            onKeyDown={(e) => e.key === 'Enter' && addExercise(customExercise)}
-          />
-          <Button onClick={() => addExercise(customExercise)}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        <CopyWorkoutPicker onCopy={applyCopiedWorkout} onError={setError} />
+        <ExerciseSearchInput
+          catalog={catalog}
+          loading={catalogLoading}
+          onAdd={addExercise}
+        />
       </section>
 
       {exercises.map((ex) => (
@@ -340,7 +259,10 @@ export function WorkoutNewPage() {
               <span>Set</span>
               <span>Reps</span>
               <span>Weight</span>
-              <span>RPE</span>
+              <span className="flex items-center justify-center gap-0.5">
+                RPE
+                <RpeInfoButton />
+              </span>
               <span></span>
             </div>
             {ex.sets.map((s, setIndex) => (
@@ -362,13 +284,9 @@ export function WorkoutNewPage() {
                   placeholder="0"
                   className="h-11 px-2"
                 />
-                <Input
-                  type="number"
-                  inputMode="numeric"
+                <RpeSelect
                   value={s.rpe}
-                  onChange={(e) => updateSet(ex.id, setIndex, 'rpe', e.target.value)}
-                  placeholder="—"
-                  className="h-11 px-2"
+                  onChange={(v) => updateSet(ex.id, setIndex, 'rpe', v)}
                 />
                 <button
                   onClick={() => removeSet(ex.id, setIndex)}
