@@ -38,7 +38,9 @@ export function ForgotPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Reset password</CardTitle>
-          <CardDescription>We will send you a link to create a new password</CardDescription>
+          <CardDescription>
+            Enter your email and we will send a link to create a new password (check spam if you do not see it).
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

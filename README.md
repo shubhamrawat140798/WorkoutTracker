@@ -100,8 +100,18 @@ npm run db:push
 4. Add environment variables:
    - `JWT_SECRET`
    - `NITRO_JWT_SECRET` (same value as `JWT_SECRET`)
-   - `APP_URL` (your production URL)
-5. Deploy, then run `npm run db:push` against production `DATABASE_URL`
+   - `APP_URL` (your production URL, e.g. `https://your-app.vercel.app`)
+   - `RESEND_API_KEY` (from [Resend](https://resend.com) — password reset emails)
+   - `EMAIL_FROM` (e.g. `Workout Tracker <onboarding@resend.dev>` until your domain is verified)
+5. Deploy, then run `npm run db:migrate` against production `DATABASE_URL`
+
+### Password reset email (Resend)
+
+1. Create a free account at [resend.com](https://resend.com) and create an API key.
+2. In Vercel **Production** env, set `RESEND_API_KEY` and `EMAIL_FROM`.
+3. With Resend’s test sender (`onboarding@resend.dev`), you can only email **your own** verified address.
+4. For real users, **verify your domain** in Resend (DNS SPF/DKIM) and set `EMAIL_FROM` to e.g. `Workout Tracker <noreply@yourdomain.com>`.
+5. Local dev without Resend still shows the reset link on screen after **Forgot password**.
 
 For local env from Vercel: `vercel env pull`
 

@@ -5,19 +5,22 @@ import { db } from '../lib/db'
 import { users } from '../lib/schema'
 import { createResetToken } from '../lib/auth'
 import { forgotPasswordSchema } from '../lib/validation'
+import { getAppUrl, isEmailConfigured, sendPasswordResetEmail } from '../lib/email'
+
+const GENERIC_MESSAGE = 'If that email exists, a reset link has been sent.'
 
 export default defineHandler(async (event) => {
   const body = await readBody(event)
   const parsed = forgotPasswordSchema.safeParse(body)
   if (!parsed.success) {
-    return { message: 'If that email exists, a reset link has been sent.' }
+    return { message: GENERIC_MESSAGE }
   }
 
   const { email } = parsed.data
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email.toLowerCase())).limit(1)
 
   if (!user) {
-    return { message: 'If that email exists, a reset link has been sent.' }
+    return { message: GENERIC_MESSAGE }
   }
 
   const { token, hash } = createResetToken()
@@ -28,12 +31,17 @@ export default defineHandler(async (event) => {
     .set({ resetTokenHash: hash, resetTokenExpiresAt: expiresAt })
     .where(eq(users.id, user.id))
 
-  const appUrl = process.env.APP_URL || 'http://localhost:5173'
-  const resetLink = `${appUrl}/reset-password?token=${token}`
+  const resetLink = `${getAppUrl()}/reset-password?token=${token}`
 
   const isDev = process.env.NODE_ENV !== 'production'
+  const showDevLink = isDev && !isEmailConfigured()
+
+  if (!showDevLink) {
+    await sendPasswordResetEmail(email, resetLink)
+  }
+
   return {
-    message: 'If that email exists, a reset link has been sent.',
-    ...(isDev ? { resetLink } : {}),
+    message: GENERIC_MESSAGE,
+    ...(showDevLink ? { resetLink } : {}),
   }
 })
