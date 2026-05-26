@@ -238,6 +238,25 @@ export interface CreateWorkoutPayload {
 export const DRAFT_KEY = 'workout-draft'
 export const WEIGHT_UNIT_KEY = 'weight-unit'
 
+/** Drafts older than this are treated as a new session (avoids 8h+ bogus durations). */
+export const STALE_WORKOUT_DRAFT_MS = 3 * 60 * 60 * 1000
+
+export function clearWorkoutDraft() {
+  localStorage.removeItem(DRAFT_KEY)
+}
+
+export function isStaleWorkoutStart(startedAtIso: string, maxAgeMs = STALE_WORKOUT_DRAFT_MS) {
+  const t = new Date(startedAtIso).getTime()
+  if (Number.isNaN(t)) return true
+  return Date.now() - t > maxAgeMs
+}
+
+export function resolveWorkoutStartedAt(draftStartedAt?: string | null, fresh = false) {
+  if (fresh) return new Date().toISOString()
+  if (draftStartedAt && !isStaleWorkoutStart(draftStartedAt)) return draftStartedAt
+  return new Date().toISOString()
+}
+
 export type DraftWorkout = {
   title: string
   notes: string

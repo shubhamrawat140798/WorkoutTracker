@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, Trash2, X } from 'lucide-react'
-import { api, DRAFT_KEY, WEIGHT_UNIT_KEY, type CatalogExercise, type DraftWorkout, type WorkoutDetail } from '@/lib/api'
+import {
+  api,
+  DRAFT_KEY,
+  resolveWorkoutStartedAt,
+  WEIGHT_UNIT_KEY,
+  type CatalogExercise,
+  type DraftWorkout,
+  type WorkoutDetail,
+} from '@/lib/api'
 import { getWorkoutWeightUnit, workoutToExerciseEntries } from '@/lib/workout-copy'
-import { todayISO } from '@/lib/utils'
+import { formatTime, todayISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,8 +53,12 @@ function loadDraft(): DraftWorkout | null {
   }
 }
 
+const MAX_SESSION_MS = 4 * 60 * 60 * 1000
+
 export function WorkoutNewPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const freshStart = (location.state as { fresh?: boolean } | null)?.fresh === true
   const [title, setTitle] = useState('Workout')
   const [notes, setNotes] = useState('')
   const [exercises, setExercises] = useState<ExerciseEntry[]>(() => {
@@ -54,9 +66,9 @@ export function WorkoutNewPage() {
     if (draft?.exercises?.length) return normalizeExercises(draft.exercises)
     return [emptyExercise('Bench Press', 0)]
   })
-  const [startedAt] = useState(() => {
+  const [startedAt, setStartedAt] = useState(() => {
     const draft = loadDraft()
-    return draft?.startedAt || new Date().toISOString()
+    return resolveWorkoutStartedAt(draft?.startedAt, freshStart)
   })
   const [weightUnit, setWeightUnit] = useState(() => localStorage.getItem(WEIGHT_UNIT_KEY) || 'kg')
   const [saving, setSaving] = useState(false)
@@ -69,6 +81,13 @@ export function WorkoutNewPage() {
     durationMinutes: number
     exerciseCount: number
   } | null>(null)
+
+  useEffect(() => {
+    const draft = loadDraft()
+    const resolved = resolveWorkoutStartedAt(draft?.startedAt, freshStart)
+    if (resolved !== startedAt) setStartedAt(resolved)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, [])
 
   useEffect(() => {
     api.catalog
@@ -174,18 +193,24 @@ export function WorkoutNewPage() {
 
     setSaving(true)
     try {
-      const completedAt = new Date().toISOString()
-      const durationMinutes = Math.round(
-        (new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 60000,
-      )
+      const completedAt = new Date()
+      let sessionStart = new Date(startedAt)
+      let gapMs = completedAt.getTime() - sessionStart.getTime()
+      if (gapMs > MAX_SESSION_MS || gapMs < 0) {
+        sessionStart = completedAt
+        gapMs = 0
+      }
+      const completedAtIso = completedAt.toISOString()
+      const startedAtIso = sessionStart.toISOString()
+      const durationMinutes = Math.round(gapMs / 60000)
 
       const payload = {
         title,
         notes: notes || null,
         date: todayISO(),
         durationMinutes: durationMinutes > 0 ? durationMinutes : 1,
-        startedAt,
-        completedAt,
+        startedAt: startedAtIso,
+        completedAt: completedAtIso,
         exercises: validExercises.map((ex, i) => ({
           name: ex.name,
           sortOrder: i,
@@ -225,7 +250,10 @@ export function WorkoutNewPage() {
       )}
     <div className="mx-auto max-w-lg space-y-4 pb-24">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Active Workout</h1>
+        <div>
+          <h1 className="text-xl font-bold">Active Workout</h1>
+          <p className="text-xs text-muted-foreground">Started {formatTime(startedAt)}</p>
+        </div>
         <button
           onClick={() => navigate('/')}
           className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent"

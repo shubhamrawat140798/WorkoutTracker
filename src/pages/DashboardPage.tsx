@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dumbbell, ChevronRight } from 'lucide-react'
-import { api, type WorkoutSummary } from '@/lib/api'
+import { api, clearWorkoutDraft, type WorkoutSummary } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +25,11 @@ export function DashboardPage() {
         <p className="text-muted-foreground">Log your workout and track your progress</p>
       </section>
 
-      <Link to="/workout/new">
+      <Link
+        to="/workout/new"
+        state={{ fresh: true }}
+        onClick={() => clearWorkoutDraft()}
+      >
         <Button size="lg" className="w-full gap-2 text-base">
           <Dumbbell className="h-5 w-5" />
           Start Workout
