@@ -1,41 +1,33 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 
-const envPath = '.env'
+const localPath = '.env.local'
 const placeholder = /user:password@host/
 
-if (!existsSync(envPath)) {
-  console.log(`
-Create a .env file for local development:
-
-1. Open Vercel → workout-tracker → Settings → Environment Variables
-2. Click DATABASE_URL → reveal → copy the value
-   (Or copy from https://console.neon.tech → your project → Connection string)
-3. Paste into .env:
-
-DATABASE_URL=<paste here>
-JWT_SECRET=<any random 32+ char string>
-APP_URL=http://localhost:3000
-
-4. Run: npm run db:push:prod   (uses production DB)
-   Or:  npm run db:push        (uses .env DATABASE_URL)
-
-5. Restart: npm run dev
-`)
-  process.exit(1)
+function checkFile(path) {
+  if (!existsSync(path)) return { ok: false, reason: 'missing' }
+  const content = readFileSync(path, 'utf-8')
+  const db = content.match(/^DATABASE_URL=(.*)$/m)?.[1]?.replace(/^["']|["']$/g, '') ?? ''
+  const jwt = content.match(/^JWT_SECRET=(.*)$/m)?.[1]?.replace(/^["']|["']$/g, '') ?? ''
+  if (!db || db.length < 20 || placeholder.test(db)) return { ok: false, reason: 'DATABASE_URL' }
+  if (!jwt || jwt.length < 8) return { ok: false, reason: 'JWT_SECRET' }
+  return { ok: true }
 }
 
-const content = readFileSync(envPath, 'utf-8')
-if (placeholder.test(content)) {
-  console.error(`
-Your .env still has the example DATABASE_URL placeholder.
+const local = checkFile(localPath)
+const env = checkFile('.env')
 
-Production works (health: connected) but localhost uses .env — copy the real
-Neon connection string from Vercel or Neon console into .env, then:
-
-  npm run db:push
-  npm run dev
-`)
-  process.exit(1)
+if (local.ok || env.ok) {
+  console.log('✓ Local env is configured. Run: npm run dev')
+  process.exit(0)
 }
 
-console.log('Local .env looks configured. Run: npm run dev')
+console.log(`
+Local env is not set up yet.
+
+  npm run dev:vercel     ← easiest (uses Vercel secrets)
+
+  OR copy DATABASE_URL + JWT_SECRET from Vercel dashboard into .env.local
+  See .env.local.example
+`)
+
+process.exit(1)

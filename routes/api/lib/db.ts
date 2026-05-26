@@ -1,20 +1,16 @@
 import { neon } from '@neondatabase/serverless'
 import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import * as schema from './schema'
+import { getDatabaseUrl } from './env'
 
 let _db: NeonHttpDatabase<typeof schema> | null = null
 
-const PLACEHOLDER_PATTERN = /user:password@host/
-
 export function getDb() {
   if (!_db) {
-    const url = process.env.DATABASE_URL
+    const url = getDatabaseUrl()
     if (!url) {
-      throw new Error('DATABASE_URL is not set')
-    }
-    if (PLACEHOLDER_PATTERN.test(url)) {
       throw new Error(
-        'DATABASE_URL is still the example placeholder. Replace it with your Neon connection string in .env',
+        'DATABASE_URL is not set. Create .env.local with DATABASE_URL from Vercel (see README), or enable Development env on Vercel variables.',
       )
     }
     const sql = neon(url)

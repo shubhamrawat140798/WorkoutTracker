@@ -11,7 +11,7 @@ export function handleDbError(error: unknown): never {
     throw createError({
       statusCode: 503,
       message:
-        'Database not configured. Add your Neon DATABASE_URL to .env (see README), then run: npm run db:push',
+        'Database not configured. Put DATABASE_URL in .env.local (not .env). Restart the dev server after saving.',
     })
   }
 

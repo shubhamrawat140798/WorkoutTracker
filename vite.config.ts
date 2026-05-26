@@ -1,11 +1,19 @@
 import path from 'path'
+import { existsSync } from 'fs'
+import { config as loadEnv } from 'dotenv'
 import { defineConfig } from 'vite'
+
+// Load .env.local before Vite/Nitro so placeholder .env cannot override it
+if (existsSync('.env.local')) {
+  loadEnv({ path: '.env.local', override: true })
+}
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  envDir: '.',
   plugins: [
     react(),
     tailwindcss(),

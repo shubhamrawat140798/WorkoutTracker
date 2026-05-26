@@ -6,12 +6,13 @@ import { getCookie, setCookie, deleteCookie, createError } from 'nitro/h3'
 import { eq } from 'drizzle-orm'
 import { db } from './db'
 import { users } from './schema'
+import { getJwtSecret as resolveJwtSecret } from './env'
 
 const COOKIE_NAME = 'session'
 const JWT_EXPIRY = '7d'
 
 function getJwtSecret() {
-  const secret = process.env.JWT_SECRET || process.env.NITRO_JWT_SECRET
+  const secret = resolveJwtSecret()
   if (!secret) throw new Error('JWT_SECRET is not set')
   return new TextEncoder().encode(secret)
 }

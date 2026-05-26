@@ -9,12 +9,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const QUICK_EXERCISES = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Pull-ups']
 
+type ExerciseEntry = DraftWorkout['exercises'][number] & { id: string }
+
+function newId() {
+  return crypto.randomUUID()
+}
+
 function emptySet(n: number) {
   return { setNumber: n, reps: '', weight: '', rpe: '', notes: '' }
 }
 
-function emptyExercise(name: string, order: number) {
-  return { name, sortOrder: order, sets: [emptySet(1)] }
+function emptyExercise(name: string, sortOrder: number): ExerciseEntry {
+  return { id: newId(), name, sortOrder, sets: [emptySet(1)] }
+}
+
+function normalizeExercises(raw: DraftWorkout['exercises']): ExerciseEntry[] {
+  return raw.map((ex, i) => ({
+    ...ex,
+    id: ex.id ?? newId(),
+    sortOrder: i,
+  }))
 }
 
 function loadDraft(): DraftWorkout | null {
@@ -30,9 +44,9 @@ export function WorkoutNewPage() {
   const navigate = useNavigate()
   const [title, setTitle] = useState('Workout')
   const [notes, setNotes] = useState('')
-  const [exercises, setExercises] = useState(() => {
+  const [exercises, setExercises] = useState<ExerciseEntry[]>(() => {
     const draft = loadDraft()
-    if (draft?.exercises?.length) return draft.exercises
+    if (draft?.exercises?.length) return normalizeExercises(draft.exercises)
     return [emptyExercise('Bench Press', 0)]
   })
   const [startedAt] = useState(() => {
@@ -43,6 +57,7 @@ export function WorkoutNewPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [customExercise, setCustomExercise] = useState('')
+  const [scrollToId, setScrollToId] = useState<string | null>(null)
 
   const saveDraft = useCallback(() => {
     const draft: DraftWorkout = { title, notes, startedAt, exercises }
@@ -57,29 +72,45 @@ export function WorkoutNewPage() {
     localStorage.setItem(WEIGHT_UNIT_KEY, weightUnit)
   }, [weightUnit])
 
+  useEffect(() => {
+    if (!scrollToId) return
+    const el = document.getElementById(`exercise-${scrollToId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setScrollToId(null)
+  }, [scrollToId, exercises])
+
   const addExercise = (name: string) => {
     if (!name.trim()) return
-    setExercises((prev) => [...prev, emptyExercise(name.trim(), prev.length)])
+    const entry = emptyExercise(name.trim(), 0)
+    setExercises((prev) => [
+      entry,
+      ...prev.map((e, i) => ({ ...e, sortOrder: i + 1 })),
+    ])
+    setScrollToId(entry.id)
     setCustomExercise('')
   }
 
-  const removeExercise = (index: number) => {
-    setExercises((prev) => prev.filter((_, i) => i !== index).map((e, i) => ({ ...e, sortOrder: i })))
-  }
-
-  const addSet = (exIndex: number) => {
+  const removeExercise = (id: string) => {
     setExercises((prev) =>
-      prev.map((ex, i) =>
-        i === exIndex
-          ? { ...ex, sets: [...ex.sets, emptySet(ex.sets.length + 1)] }
-          : ex,
-      ),
+      prev.filter((e) => e.id !== id).map((e, i) => ({ ...e, sortOrder: i })),
     )
   }
 
-  const removeSet = (exIndex: number, setIndex: number) => {
-    setExercises((prev) =>
-      prev.map((ex, i) =>
+  const addSet = (exerciseId: string) => {
+    setExercises((prev) => {
+      const exIndex = prev.findIndex((e) => e.id === exerciseId)
+      if (exIndex < 0) return prev
+      return prev.map((ex, i) =>
+        i === exIndex ? { ...ex, sets: [...ex.sets, emptySet(ex.sets.length + 1)] } : ex,
+      )
+    })
+  }
+
+  const removeSet = (exerciseId: string, setIndex: number) => {
+    setExercises((prev) => {
+      const exIndex = prev.findIndex((e) => e.id === exerciseId)
+      if (exIndex < 0) return prev
+      return prev.map((ex, i) =>
         i === exIndex
           ? {
               ...ex,
@@ -88,21 +119,23 @@ export function WorkoutNewPage() {
                 .map((s, si) => ({ ...s, setNumber: si + 1 })),
             }
           : ex,
-      ),
-    )
+      )
+    })
   }
 
-  const updateSet = (exIndex: number, setIndex: number, field: string, value: string) => {
-    setExercises((prev) =>
-      prev.map((ex, i) =>
+  const updateSet = (exerciseId: string, setIndex: number, field: string, value: string) => {
+    setExercises((prev) => {
+      const exIndex = prev.findIndex((e) => e.id === exerciseId)
+      if (exIndex < 0) return prev
+      return prev.map((ex, i) =>
         i === exIndex
           ? {
               ...ex,
               sets: ex.sets.map((s, si) => (si === setIndex ? { ...s, [field]: value } : s)),
             }
           : ex,
-      ),
-    )
+      )
+    })
   }
 
   const copyLastWorkout = async () => {
@@ -115,6 +148,7 @@ export function WorkoutNewPage() {
       setTitle(workout.title)
       setExercises(
         workout.exercises.map((ex, i) => ({
+          id: newId(),
           name: ex.name,
           sortOrder: i,
           sets: ex.sets.map((s) => ({
@@ -204,36 +238,38 @@ export function WorkoutNewPage() {
 
       <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (optional)" />
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={copyLastWorkout} className="gap-1">
-          <Copy className="h-4 w-4" />
-          Copy last
-        </Button>
-        {QUICK_EXERCISES.map((name) => (
-          <Button key={name} variant="secondary" size="sm" onClick={() => addExercise(name)}>
-            + {name}
+      <section className="space-y-3 rounded-2xl border border-border bg-card/50 p-4">
+        <p className="text-sm font-medium text-muted-foreground">Add exercise</p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={copyLastWorkout} className="gap-1">
+            <Copy className="h-4 w-4" />
+            Copy last
           </Button>
-        ))}
-      </div>
+          {QUICK_EXERCISES.map((name) => (
+            <Button key={name} variant="secondary" size="sm" onClick={() => addExercise(name)}>
+              + {name}
+            </Button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={customExercise}
+            onChange={(e) => setCustomExercise(e.target.value)}
+            placeholder="Custom exercise"
+            onKeyDown={(e) => e.key === 'Enter' && addExercise(customExercise)}
+          />
+          <Button onClick={() => addExercise(customExercise)}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </section>
 
-      <div className="flex gap-2">
-        <Input
-          value={customExercise}
-          onChange={(e) => setCustomExercise(e.target.value)}
-          placeholder="Custom exercise"
-          onKeyDown={(e) => e.key === 'Enter' && addExercise(customExercise)}
-        />
-        <Button onClick={() => addExercise(customExercise)}>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {exercises.map((ex, exIndex) => (
-        <Card key={exIndex}>
+      {exercises.map((ex) => (
+        <Card key={ex.id} id={`exercise-${ex.id}`} className="scroll-mt-4">
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base">{ex.name}</CardTitle>
             <button
-              onClick={() => removeExercise(exIndex)}
+              onClick={() => removeExercise(ex.id)}
               className="text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
@@ -254,7 +290,7 @@ export function WorkoutNewPage() {
                   type="number"
                   inputMode="numeric"
                   value={s.reps}
-                  onChange={(e) => updateSet(exIndex, setIndex, 'reps', e.target.value)}
+                  onChange={(e) => updateSet(ex.id, setIndex, 'reps', e.target.value)}
                   placeholder="0"
                   className="h-11 px-2"
                 />
@@ -262,7 +298,7 @@ export function WorkoutNewPage() {
                   type="number"
                   inputMode="decimal"
                   value={s.weight}
-                  onChange={(e) => updateSet(exIndex, setIndex, 'weight', e.target.value)}
+                  onChange={(e) => updateSet(ex.id, setIndex, 'weight', e.target.value)}
                   placeholder="0"
                   className="h-11 px-2"
                 />
@@ -270,19 +306,19 @@ export function WorkoutNewPage() {
                   type="number"
                   inputMode="numeric"
                   value={s.rpe}
-                  onChange={(e) => updateSet(exIndex, setIndex, 'rpe', e.target.value)}
+                  onChange={(e) => updateSet(ex.id, setIndex, 'rpe', e.target.value)}
                   placeholder="—"
                   className="h-11 px-2"
                 />
                 <button
-                  onClick={() => removeSet(exIndex, setIndex)}
+                  onClick={() => removeSet(ex.id, setIndex)}
                   className="flex h-11 items-center justify-center text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
-            <Button variant="ghost" size="sm" onClick={() => addSet(exIndex)} className="w-full">
+            <Button variant="ghost" size="sm" onClick={() => addSet(ex.id)} className="w-full">
               <Plus className="mr-1 h-4 w-4" />
               Add set
             </Button>

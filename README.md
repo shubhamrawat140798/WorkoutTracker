@@ -26,33 +26,50 @@ A mobile-first Progressive Web App for logging strength workouts and reviewing y
 npm install
 ```
 
-### 2. Set up environment variables
+### 2. Local development (production already on Vercel)
 
-Copy `.env.example` to `.env`:
+Production uses env vars from Vercel automatically. **Local `npm run dev` needs the same credentials once.**
 
-```bash
-cp .env.example .env
-```
-
-Fill in:
-
-- `DATABASE_URL` — Neon Postgres connection string
-- `JWT_SECRET` — random 32+ character secret
-- `APP_URL` — `http://localhost:5173` for local dev
-
-### 3. Push database schema
+**Option A — Vercel CLI (injects production env):**
 
 ```bash
-npm run db:push
+vercel link
+npm run dev:vercel
 ```
 
-### 4. Run development server
+If you see `yarn: command not found`, pull latest code (project uses npm). Use Option B instead.
+
+**Option B — `.env.local` file:**
+
+1. Vercel → **workout-tracker** → **Settings** → **Environment Variables**
+2. Reveal **DATABASE_URL** and **JWT_SECRET** → copy both
+3. Create `.env.local` (see `.env.local.example`):
+
+```env
+DATABASE_URL=<paste from Vercel>
+JWT_SECRET=<paste from Vercel>
+APP_URL=http://localhost:3000
+```
+
+4. Run:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+> `vercel env pull` leaves secrets empty (`""`) for security — you must copy from the dashboard.
+
+### 3. Push database schema (only if using a new database)
+
+```bash
+npm run db:push:prod   # production DB (after env pull, if values are present)
+# or with .env.local filled in:
+npm run db:push
+```
+
+### 4. Open the app
+
+- `npm run dev` or `npm run dev:vercel` → [http://localhost:3000](http://localhost:3000)
 
 ## Deploy to Vercel
 

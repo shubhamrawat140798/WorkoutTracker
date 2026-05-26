@@ -144,6 +144,7 @@ export type DraftWorkout = {
   notes: string
   startedAt: string
   exercises: {
+    id?: string
     name: string
     sortOrder: number
     sets: { setNumber: number; reps: string; weight: string; rpe: string; notes: string }[]
