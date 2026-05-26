@@ -69,13 +69,67 @@ export const api = {
     delete: (id: string) =>
       request<{ success: boolean }>(`/api/workouts/${id}`, { method: 'DELETE' }),
   },
+  catalog: {
+    list: () => request<{ exercises: CatalogExercise[] }>('/api/catalog'),
+    get: (slug: string) => request<{ exercise: CatalogExercise }>(`/api/catalog/${encodeURIComponent(slug)}`),
+  },
+  admin: {
+    catalog: {
+      list: () => request<{ exercises: CatalogExercise[] }>('/api/admin/catalog'),
+      get: (id: string) => request<{ exercise: CatalogExercise }>(`/api/admin/catalog/${id}`),
+      create: (body: CatalogExerciseInput) =>
+        request<{ exercise: CatalogExercise }>('/api/admin/catalog', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      update: (id: string, body: Partial<CatalogExerciseInput>) =>
+        request<{ exercise: CatalogExercise }>(`/api/admin/catalog/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        }),
+      delete: (id: string) =>
+        request<{ success: boolean }>(`/api/admin/catalog/${id}`, { method: 'DELETE' }),
+    },
+  },
 }
 
 export interface User {
   id: string
   email: string
   name: string
+  role: string
   createdAt: string
+}
+
+export interface CatalogExercise {
+  id: string
+  slug: string
+  name: string
+  primaryMuscle: string | null
+  secondaryMuscles: string[]
+  equipment: string | null
+  level: string | null
+  instructions: string[]
+  tips: string[]
+  heroImageUrl: string | null
+  stepImageUrls: string[]
+  published: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CatalogExerciseInput {
+  name: string
+  slug?: string
+  primaryMuscle?: string | null
+  secondaryMuscles?: string[]
+  equipment?: string | null
+  level?: string | null
+  instructions?: string[]
+  tips?: string[]
+  heroImageUrl?: string
+  stepImageUrls?: string[]
+  published?: boolean
 }
 
 export interface WorkoutSummary {

@@ -6,6 +6,8 @@ import {
   date,
   integer,
   decimal,
+  boolean,
+  jsonb,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
@@ -17,6 +19,7 @@ export const users = pgTable(
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
     name: text('name').notNull(),
+    role: text('role').notNull().default('user'),
     resetTokenHash: text('reset_token_hash'),
     resetTokenExpiresAt: timestamp('reset_token_expires_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -46,6 +49,27 @@ export const exercises = pgTable('exercises', {
   name: text('name').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
 })
+
+export const exerciseCatalog = pgTable(
+  'exercise_catalog',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    primaryMuscle: text('primary_muscle'),
+    secondaryMuscles: jsonb('secondary_muscles').$type<string[]>().default([]),
+    equipment: text('equipment'),
+    level: text('level'),
+    instructions: jsonb('instructions').$type<string[]>().default([]),
+    tips: jsonb('tips').$type<string[]>().default([]),
+    heroImageUrl: text('hero_image_url'),
+    stepImageUrls: jsonb('step_image_urls').$type<string[]>().default([]),
+    published: boolean('published').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex('exercise_catalog_slug_idx').on(table.slug)],
+)
 
 export const sets = pgTable('sets', {
   id: uuid('id').primaryKey().defaultRandom(),

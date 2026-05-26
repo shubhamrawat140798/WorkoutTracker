@@ -5,6 +5,7 @@ import { api, type WorkoutDetail } from '@/lib/api'
 import { formatDate, formatVolume } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DeleteWorkoutButton } from '@/components/DeleteWorkoutButton'
+import { ExerciseGuideButton } from '@/components/ExerciseGuideButton'
 
 export function WorkoutDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -65,7 +66,10 @@ export function WorkoutDetailPage() {
         return (
           <Card key={ex.id ?? ex.name}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{ex.name}</CardTitle>
+              <div className="flex items-center gap-1">
+                <CardTitle className="text-base">{ex.name}</CardTitle>
+                <ExerciseGuideButton exerciseName={ex.name} />
+              </div>
               <p className="text-xs text-muted-foreground">{formatVolume(exVolume, unit)} total</p>
             </CardHeader>
             <CardContent>

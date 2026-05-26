@@ -6,6 +6,7 @@ import { users } from '../lib/schema'
 import { hashPassword, createSessionToken, setSessionCookie } from '../lib/auth'
 import { registerSchema } from '../lib/validation'
 import { handleDbError } from '../lib/errors'
+import { getAdminEmails } from '../lib/env'
 
 export default defineHandler(async (event) => {
   const body = await readBody(event)
@@ -27,10 +28,17 @@ export default defineHandler(async (event) => {
     }
 
     const passwordHash = await hashPassword(password)
+    const role = getAdminEmails().includes(email.toLowerCase()) ? 'admin' : 'user'
     const [user] = await db
       .insert(users)
-      .values({ email: email.toLowerCase(), name, passwordHash })
-      .returning({ id: users.id, email: users.email, name: users.name, createdAt: users.createdAt })
+      .values({ email: email.toLowerCase(), name, passwordHash, role })
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        createdAt: users.createdAt,
+      })
 
     const token = await createSessionToken(user.id, user.email)
     setSessionCookie(event, token)

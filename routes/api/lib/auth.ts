@@ -6,7 +6,7 @@ import { getCookie, setCookie, deleteCookie, createError } from 'nitro/h3'
 import { eq } from 'drizzle-orm'
 import { db } from './db'
 import { users } from './schema'
-import { getJwtSecret as resolveJwtSecret } from './env'
+import { getJwtSecret as resolveJwtSecret, getAdminEmails } from './env'
 
 const COOKIE_NAME = 'session'
 const JWT_EXPIRY = '7d'
@@ -65,6 +65,7 @@ export async function getSessionUser(event: H3Event) {
       id: users.id,
       email: users.email,
       name: users.name,
+      role: users.role,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -72,6 +73,19 @@ export async function getSessionUser(event: H3Event) {
     .limit(1)
 
   return user ?? null
+}
+
+export function isAdminUser(user: { email: string; role?: string | null }) {
+  if (user.role === 'admin') return true
+  return getAdminEmails().includes(user.email.toLowerCase())
+}
+
+export async function requireAdmin(event: H3Event) {
+  const user = await requireAuth(event)
+  if (!isAdminUser(user)) {
+    throw createError({ statusCode: 403, message: 'Admin access required' })
+  }
+  return user
 }
 
 export async function requireAuth(event: H3Event) {

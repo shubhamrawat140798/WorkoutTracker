@@ -1,6 +1,7 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { Dumbbell, History, Home, LogOut } from 'lucide-react'
+import { Dumbbell, History, Home, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { isAdmin } from '@/lib/auth-utils'
 import { cn } from '@/lib/utils'
 
 const nav = [
@@ -23,13 +24,24 @@ export function Layout({ children }: { children?: React.ReactNode }) {
             <p className="text-xs text-muted-foreground">Workout Tracker</p>
             <p className="font-semibold">{user?.name}</p>
           </div>
-          <button
-            onClick={() => logout()}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Log out"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {isAdmin(user) && (
+              <Link
+                to="/admin/exercises"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label="Admin exercises"
+              >
+                <Settings className="h-5 w-5" />
+              </Link>
+            )}
+            <button
+              onClick={() => logout()}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="Log out"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </header>
 

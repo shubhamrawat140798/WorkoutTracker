@@ -11,12 +11,15 @@
     "build": "tsc -b && vite build && node scripts/db-migrate.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
+    "db:migrate": "node scripts/db-migrate.mjs",
     "db:push": "drizzle-kit push",
     "db:push:prod": "ENV_FILE=.env.production.local node scripts/db-migrate.mjs",
+    "admin:promote": "node scripts/promote-admin.mjs",
     "setup:local": "node scripts/setup-local-env.mjs",
     "env:sync": "node scripts/sync-local-env.mjs",
     "db:generate": "drizzle-kit generate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed-catalog": "node scripts/seed-catalog.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

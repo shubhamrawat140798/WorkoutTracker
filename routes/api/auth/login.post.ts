@@ -22,6 +22,7 @@ export default defineHandler(async (event) => {
         id: users.id,
         email: users.email,
         name: users.name,
+        role: users.role,
         passwordHash: users.passwordHash,
         createdAt: users.createdAt,
       })
@@ -41,6 +42,7 @@ export default defineHandler(async (event) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        role: user.role,
         createdAt: user.createdAt,
       },
     }

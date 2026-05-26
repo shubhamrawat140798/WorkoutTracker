@@ -9,6 +9,7 @@ A mobile-first Progressive Web App for logging strength workouts and reviewing y
 - Copy your last workout as a template
 - Auto-save workout drafts locally
 - Review workout history with volume stats
+- Exercise guides (infographic-style instructions) from an admin-managed catalog
 - Installable PWA with offline app shell
 
 ## Tech Stack
@@ -59,15 +60,35 @@ npm run dev
 
 > `vercel env pull` leaves secrets empty (`""`) for security — you must copy from the dashboard.
 
-### 3. Push database schema (only if using a new database)
+### 3. Admin access & exercise catalog
+
+After migrations run, promote your account to admin:
 
 ```bash
-npm run db:push:prod   # production DB (after env pull, if values are present)
-# or with .env.local filled in:
+npm run admin:promote -- you@example.com
+```
+
+(Or run the same `UPDATE` in the Neon SQL console — not in your terminal shell.)
+
+Or set `ADMIN_EMAILS=you@example.com` in `.env.local` / Vercel before signup (new accounts get `admin` automatically).
+
+Seed default exercises (Bench Press, Squat, etc.):
+
+```bash
+npm run db:seed-catalog
+```
+
+Open **Settings** (gear icon) in the app header → manage exercises at `/admin/exercises`. Paste **HTTPS** image URLs for hero/step images (no file upload).
+
+### 4. Push database schema (only if using a new database)
+
+```bash
+npm run db:migrate     # applies drizzle/*.sql using .env.local
+# or sync schema via Drizzle Kit:
 npm run db:push
 ```
 
-### 4. Open the app
+### 5. Open the app
 
 - `npm run dev` or `npm run dev:vercel` → [http://localhost:3000](http://localhost:3000)
 
@@ -99,3 +120,10 @@ For local env from Vercel: `vercel env pull`
 | GET | `/api/workouts/last` | Last workout (for copy) |
 | GET | `/api/workouts/:id` | Workout detail |
 | DELETE | `/api/workouts/:id` | Delete workout |
+| GET | `/api/catalog` | Published exercise guides |
+| GET | `/api/catalog/:slug` | Single exercise guide |
+| GET | `/api/admin/catalog` | Admin: list all catalog entries |
+| POST | `/api/admin/catalog` | Admin: create catalog entry |
+| GET | `/api/admin/catalog/:id` | Admin: get entry |
+| PUT | `/api/admin/catalog/:id` | Admin: update entry |
+| DELETE | `/api/admin/catalog/:id` | Admin: delete entry |

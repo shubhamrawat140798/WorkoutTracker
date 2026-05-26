@@ -41,3 +41,12 @@ export function getJwtSecret(): string {
   if (!secret || secret === 'JWT_SECRET' || secret.includes('your-32-char')) return ''
   return secret
 }
+
+export function getAdminEmails(): string[] {
+  loadServerEnv()
+  const raw = process.env.ADMIN_EMAILS || ''
+  return raw
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+}

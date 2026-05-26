@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Copy, X } from 'lucide-react'
-import { api, DRAFT_KEY, WEIGHT_UNIT_KEY, type DraftWorkout } from '@/lib/api'
+import { api, DRAFT_KEY, WEIGHT_UNIT_KEY, type CatalogExercise, type DraftWorkout } from '@/lib/api'
 import { todayISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ExerciseGuideButton } from '@/components/ExerciseGuideButton'
 
-const QUICK_EXERCISES = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Pull-ups']
+const selectClass =
+  'h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-sm text-foreground'
 
 type ExerciseEntry = DraftWorkout['exercises'][number] & { id: string }
 
@@ -57,7 +59,34 @@ export function WorkoutNewPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [customExercise, setCustomExercise] = useState('')
+  const [catalogPick, setCatalogPick] = useState('')
+  const [catalog, setCatalog] = useState<CatalogExercise[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
   const [scrollToId, setScrollToId] = useState<string | null>(null)
+
+  const catalogByMuscle = useMemo(() => {
+    const groups = new Map<string, CatalogExercise[]>()
+    for (const ex of catalog) {
+      const key = ex.primaryMuscle?.trim() || 'Other'
+      const list = groups.get(key) ?? []
+      list.push(ex)
+      groups.set(key, list)
+    }
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([muscle, items]) => ({
+        muscle,
+        items: items.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+  }, [catalog])
+
+  useEffect(() => {
+    api.catalog
+      .list()
+      .then(({ exercises }) => setCatalog(exercises))
+      .catch(() => setCatalog([]))
+      .finally(() => setCatalogLoading(false))
+  }, [])
 
   const saveDraft = useCallback(() => {
     const draft: DraftWorkout = { title, notes, startedAt, exercises }
@@ -88,6 +117,12 @@ export function WorkoutNewPage() {
     ])
     setScrollToId(entry.id)
     setCustomExercise('')
+    setCatalogPick('')
+  }
+
+  const addFromCatalog = () => {
+    if (!catalogPick) return
+    addExercise(catalogPick)
   }
 
   const removeExercise = (id: string) => {
@@ -240,16 +275,38 @@ export function WorkoutNewPage() {
 
       <section className="space-y-3 rounded-2xl border border-border bg-card/50 p-4">
         <p className="text-sm font-medium text-muted-foreground">Add exercise</p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={copyLastWorkout} className="gap-1">
-            <Copy className="h-4 w-4" />
-            Copy last
+        <Button variant="outline" size="sm" onClick={copyLastWorkout} className="gap-1">
+          <Copy className="h-4 w-4" />
+          Copy last workout
+        </Button>
+        <div className="flex gap-2">
+          <select
+            value={catalogPick}
+            onChange={(e) => setCatalogPick(e.target.value)}
+            disabled={catalogLoading}
+            className={selectClass}
+            aria-label="Exercise catalog"
+          >
+            <option value="">
+              {catalogLoading
+                ? 'Loading catalog…'
+                : catalog.length === 0
+                  ? 'No catalog exercises'
+                  : 'Choose from catalog…'}
+            </option>
+            {catalogByMuscle.map(({ muscle, items }) => (
+              <optgroup key={muscle} label={muscle}>
+                {items.map((ex) => (
+                  <option key={ex.id} value={ex.name}>
+                    {ex.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <Button onClick={addFromCatalog} disabled={!catalogPick || catalogLoading} aria-label="Add exercise">
+            <Plus className="h-4 w-4" />
           </Button>
-          {QUICK_EXERCISES.map((name) => (
-            <Button key={name} variant="secondary" size="sm" onClick={() => addExercise(name)}>
-              + {name}
-            </Button>
-          ))}
         </div>
         <div className="flex gap-2">
           <Input
@@ -267,7 +324,10 @@ export function WorkoutNewPage() {
       {exercises.map((ex) => (
         <Card key={ex.id} id={`exercise-${ex.id}`} className="scroll-mt-4">
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base">{ex.name}</CardTitle>
+            <div className="flex min-w-0 items-center gap-1">
+              <CardTitle className="truncate text-base">{ex.name}</CardTitle>
+              <ExerciseGuideButton exerciseName={ex.name} />
+            </div>
             <button
               onClick={() => removeExercise(ex.id)}
               className="text-muted-foreground hover:text-destructive"

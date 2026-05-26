@@ -11,6 +11,10 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { WorkoutNewPage } from '@/pages/WorkoutNewPage'
 import { WorkoutDetailPage } from '@/pages/WorkoutDetailPage'
+import { AdminRoute } from '@/components/AdminRoute'
+import { AdminExercisesPage } from '@/pages/admin/AdminExercisesPage'
+import { AdminExerciseNewPage } from '@/pages/admin/AdminExerciseNewPage'
+import { AdminExerciseEditPage } from '@/pages/admin/AdminExerciseEditPage'
 
 const queryClient = new QueryClient()
 
@@ -71,6 +75,30 @@ export default function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/workout/:id" element={<WorkoutDetailPage />} />
+              <Route
+                path="/admin/exercises"
+                element={
+                  <AdminRoute>
+                    <AdminExercisesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/exercises/new"
+                element={
+                  <AdminRoute>
+                    <AdminExerciseNewPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/exercises/:id/edit"
+                element={
+                  <AdminRoute>
+                    <AdminExerciseEditPage />
+                  </AdminRoute>
+                }
+              />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
