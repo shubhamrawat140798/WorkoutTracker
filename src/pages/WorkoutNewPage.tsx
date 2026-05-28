@@ -248,7 +248,7 @@ export function WorkoutNewPage() {
           onContinue={() => navigate(`/workout/${celebration.workoutId}`)}
         />
       )}
-    <div className="mx-auto max-w-lg space-y-4 pb-24">
+      <div className="mx-auto max-w-lg space-y-4 pb-24">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Active Workout</h1>
@@ -359,7 +359,7 @@ export function WorkoutNewPage() {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
     </>
   )
 }

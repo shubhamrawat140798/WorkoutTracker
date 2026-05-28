@@ -48,3 +48,12 @@ export const createWorkoutSchema = z.object({
 export const updateWorkoutSchema = createWorkoutSchema.partial().extend({
   exercises: z.array(exerciseSchema).optional(),
 })
+
+export const updateWorkoutMetaSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  durationMinutes: z.number().int().nonnegative().optional().nullable(),
+  startedAt: z.string().datetime().optional().nullable(),
+  completedAt: z.string().datetime().optional().nullable(),
+})

@@ -69,6 +69,8 @@ export const api = {
     last: () => request<{ workout: WorkoutDetail | null }>('/api/workouts/last'),
     create: (body: CreateWorkoutPayload) =>
       request<{ workout: WorkoutDetail }>('/api/workouts', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: string, body: UpdateWorkoutMetaPayload) =>
+      request<{ workout: WorkoutDetail }>(`/api/workouts/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id: string) =>
       request<{ success: boolean }>(`/api/workouts/${id}`, { method: 'DELETE' }),
   },
@@ -212,6 +214,27 @@ export interface WorkoutDetail {
   startedAt: string | null
   completedAt: string | null
   exercises: ExerciseData[]
+}
+
+export interface UpdateWorkoutMetaPayload {
+  title?: string
+  notes?: string | null
+  date?: string
+  durationMinutes?: number | null
+  startedAt?: string | null
+  completedAt?: string | null
+  exercises?: {
+    name: string
+    sortOrder: number
+    sets: {
+      setNumber: number
+      reps?: number | null
+      weight?: number | null
+      weightUnit: string
+      rpe?: number | null
+      notes?: string | null
+    }[]
+  }[]
 }
 
 export interface CreateWorkoutPayload {

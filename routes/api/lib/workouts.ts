@@ -109,6 +109,121 @@ export async function deleteWorkout(workoutId: string, userId: string) {
   return deleted.length > 0
 }
 
+export async function updateWorkoutMeta(
+  workoutId: string,
+  userId: string,
+  input: {
+    title?: string
+    notes?: string | null
+    date?: string
+    durationMinutes?: number | null
+    startedAt?: string | null
+    completedAt?: string | null
+  },
+) {
+  const [existing] = await db
+    .select({
+      id: workouts.id,
+      date: workouts.date,
+      title: workouts.title,
+      notes: workouts.notes,
+      durationMinutes: workouts.durationMinutes,
+      startedAt: workouts.startedAt,
+      completedAt: workouts.completedAt,
+    })
+    .from(workouts)
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)))
+    .limit(1)
+
+  if (!existing) return null
+
+  const nextStartedAt =
+    input.startedAt === undefined ? existing.startedAt : input.startedAt ? new Date(input.startedAt) : null
+  const nextCompletedAt =
+    input.completedAt === undefined ? existing.completedAt : input.completedAt ? new Date(input.completedAt) : null
+
+  let nextDurationMinutes: number | null =
+    input.durationMinutes === undefined ? existing.durationMinutes : input.durationMinutes ?? null
+
+  if (input.durationMinutes === undefined && nextStartedAt && nextCompletedAt) {
+    const diffMs = nextCompletedAt.getTime() - nextStartedAt.getTime()
+    if (!Number.isNaN(diffMs)) {
+      nextDurationMinutes = Math.max(0, Math.round(diffMs / 60000))
+    }
+  }
+
+  const [updated] = await db
+    .update(workouts)
+    .set({
+      title: input.title ?? existing.title,
+      notes: input.notes === undefined ? existing.notes : input.notes ?? null,
+      date: input.date ?? existing.date,
+      durationMinutes: nextDurationMinutes,
+      startedAt: nextStartedAt,
+      completedAt: nextCompletedAt,
+    })
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)))
+    .returning({ id: workouts.id })
+
+  if (!updated) return null
+  return getWorkoutById(workoutId, userId)
+}
+
+export async function replaceWorkoutExercises(
+  workoutId: string,
+  userId: string,
+  input: {
+    exercises: {
+      name: string
+      sortOrder: number
+      sets: {
+        setNumber: number
+        reps?: number | null
+        weight?: number | null
+        weightUnit: 'kg' | 'lb'
+        rpe?: number | null
+        notes?: string | null
+      }[]
+    }[]
+  },
+) {
+  const [existing] = await db
+    .select({ id: workouts.id })
+    .from(workouts)
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)))
+    .limit(1)
+
+  if (!existing) return null
+
+  // Replace exercises/sets as a single operation (sets cascade on delete).
+  await db.delete(exercises).where(eq(exercises.workoutId, workoutId))
+
+  for (const ex of input.exercises) {
+    const [exercise] = await db
+      .insert(exercises)
+      .values({
+        workoutId,
+        name: ex.name,
+        sortOrder: ex.sortOrder,
+      })
+      .returning()
+
+    for (const s of ex.sets) {
+      await db.insert(sets).values({
+        exerciseId: exercise.id,
+        setNumber: s.setNumber,
+        reps: s.reps ?? null,
+        weight: s.weight != null ? String(s.weight) : null,
+        weightUnit: s.weightUnit,
+        rpe: s.rpe ?? null,
+        notes: s.notes ?? null,
+      })
+    }
+  }
+
+  return getWorkoutById(workoutId, userId)
+}
+
 export function calculateVolume(exercises: { sets: { reps: number | null; weight: number | null }[] }[]) {
   let total = 0
   for (const ex of exercises) {
